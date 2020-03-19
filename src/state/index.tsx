@@ -4,6 +4,14 @@ import useFirebaseAuth from './useFirebaseAuth/useFirebaseAuth';
 import usePasscodeAuth from './usePasscodeAuth/usePasscodeAuth';
 import { User } from 'firebase';
 
+const AccessToken = require('twilio').jwt.AccessToken;
+const VideoGrant = AccessToken.VideoGrant;
+const MAX_ALLOWED_SESSION_DURATION = 14400;
+
+const twilioAccountSid = process.env.REACT_APP_TWILIO_ACCOUNT_SID;
+const twilioApiKeySID = process.env.REACT_APP_TWILIO_API_KEY_SID;
+const twilioApiKeySecret = process.env.REACT_APP_TWILIO_API_KEY_SECRET;
+
 export interface StateContextType {
   error: TwilioError | null;
   setError(error: TwilioError | null): void;
@@ -50,11 +58,19 @@ export default function AppStateProvider(props: React.PropsWithChildren<{}>) {
     contextValue = {
       ...contextValue,
       getToken: async (identity, roomName) => {
-        const headers = new window.Headers();
-        const endpoint = process.env.REACT_APP_TOKEN_ENDPOINT || '/token';
-        const params = new window.URLSearchParams({ identity, roomName });
+        // const headers = new window.Headers();
+        // const endpoint = process.env.REACT_APP_TOKEN_ENDPOINT || '/token';
+        // const params = new window.URLSearchParams({ identity, roomName });
 
-        return fetch(`${endpoint}?${params}`, { headers }).then(res => res.text());
+        // return fetch(`${endpoint}?${params}`, { headers }).then(res => res.text());
+
+        const token = new AccessToken(twilioAccountSid, twilioApiKeySID, twilioApiKeySecret, {
+          ttl: MAX_ALLOWED_SESSION_DURATION,
+        });
+        token.identity = identity;
+        const videoGrant = new VideoGrant({ room: roomName });
+        token.addGrant(videoGrant);
+        return Promise.resolve(token.toJwt());
       },
     };
   }
